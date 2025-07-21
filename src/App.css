@@ -1,38 +1,76 @@
-.App {
-  text-align: center;
+/* Global Styles */
+body {
+  margin: 0;
+  padding: 0;
+  font-family: Arial, sans-serif;
+  background: #f7f7f7;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
 }
 
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
-}
-
-.App-header {
-  background-color: #282c34;
-  min-height: 100vh;
+/* App Container */
+.app-container {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: space-between;
+  max-width: 400px; /* Vertical Screen Width */
+  width: 100%;
+  height: 100vh;
+  background-color: #fff;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+/* Ad Section */
+.ad-container {
+  flex: 1;
+  width: 100%;
+  display: flex;
+  align-items: center;
   justify-content: center;
-  font-size: calc(10px + 2vmin);
-  color: white;
+  overflow: hidden;
 }
 
-.App-link {
-  color: #61dafb;
+.ad-container img,
+.ad-container video {
+  width: 100%;
+  height: auto;
+  object-fit: cover;
 }
 
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+/* QR Section */
+.qr-section {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start; /* Keep QR and text aligned left */
+  width: 90%; /* Full width */
+  padding: 1rem 1rem; /* Reduce space around the content */
+  border-top: 1px solid #ddd;
+  text-align: left;
+  gap: 1rem; /* Space between QR and text */
+  background-color: #fff; /* Ensure white background */
+}
+
+.qr-section svg {
+  flex-shrink: 0; /* Prevent QR from resizing */
+}
+
+.product-text {
+  font-size: 1rem;
+  color: #333;
+  word-break: break-word;
+}
+
+
+
+
+
+/* Loading State */
+.loading {
+  font-size: 1.5rem;
+  text-align: center;
+  padding-top: 2rem;
 }
