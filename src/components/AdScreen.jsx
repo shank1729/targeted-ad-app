@@ -1,82 +1,132 @@
-// // App.jsx
-// import React, { useEffect, useState } from "react";
-// import AdDisplay from "./AdDisplay";
-// import QRSection from "./QRSection";
-// import sample_vid from "../assets/ad-vid-1.mp4";
-
-// const dummyAdData = {
-//   type: "carousel", // 'image' | 'video' | 'carousel'
-//   src: [
-//     "https://i.pinimg.com/736x/80/11/14/801114101f57a83cd18d6beb54400a68.jpg",
-//     "https://www.pixelstalk.net/wp-content/uploads/2016/06/Samsung-Free-1080-x-1920-Backgrounds.jpg",
-//     "https://www.pixelstalk.net/wp-content/uploads/2016/06/Free-1080-x-1920-HD-Wallpapers-Download.jpg"
-//   ],
-//   qrLink: "https://example.com/product",
-//   productText: "Amazing Product - Scan QR for details!"
-// };
-
-// // const dummyAdData = {
-// //   type: "video", // 'image' | 'video' | 'carousel'
-// //   src: [sample_vid],
-// //   qrLink: "https://example.com/product",
-// //   productText: "Scan it and Buy it!"
-// // };
-
-// function App() {
-//   const [adData, setAdData] = useState(null);
-
-//   useEffect(() => {
-//     // Simulate API fetch
-//     setTimeout(() => {
-//       setAdData(dummyAdData);
-//     }, 1000);
-//   }, []);
-
-//   if (!adData) return <div className="loading">Loading Ad...</div>;
-
-//   return (
-//     <div className="app-container">
-//       <div className="ad-container">
-//         <AdDisplay type={adData.type} src={adData.src} />
-//       </div>
-//       <QRSection qrLink={adData.qrLink} productText={adData.productText} />
-//     </div>
-//   );
-// }
-
-// export default App;
-
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import AdDisplay from "./AdDisplay";
 import QRSection from "./QRSection";
 
+// Sample ad mapping (customize as needed)
+const adLibrary = {
+  Male: {
+     "(0-2)": {
+      images: ["/male_0_2_1.jpg"],
+      qr: "https://example.com/male-baby",
+    },
+    "(4-6)": {
+      images: ["/male_4_6_1.jpg"],
+      qr: "https://example.com/male-toddler",
+    },
+    "(8-12)": {
+      images: ["/male_8_12_1.jpg"],
+      qr: "https://example.com/male-preteen",
+    },
+    "(15-20)": {
+      images: ["/male_15_20_1.jpg", "/male_15_20_2.jpg"],
+      qr: "https://example.com/male-teen",
+    },
+    "(25-32)": {
+      images: ["/male_25_32_1.jpg", "/male_25_32_2.jpg"],
+      qr: "https://example.com/male-young-adult",
+    },
+    "(38-43)": {
+      images: ["/male_38_43_1.jpg"],
+      qr: "https://example.com/male-mid-adult",
+    },
+  },
+  Female: {
+    "(0-2)": {
+      images: ["/female_0_2_1.jpg"],
+      qr: "https://example.com/female-baby",
+    },
+    "(4-6)": {
+      images: ["/female_4_6_1.jpg"],
+      qr: "https://example.com/female-toddler",
+    },
+    "(8-12)": {
+      images: ["/female_8_12_1.jpg"],
+      qr: "https://example.com/female-preteen",
+    },
+    "(15-20)": {
+      images: ["/female_15_20_1.jpg", "/female_15_20_2.jpg", "/female_15_20_3.jpg"],
+      qr: "https://example.com/female-teen",
+    },
+    "(25-32)": {
+      images: ["/female_25_32_1.jpg", "/female_25_32_2.jpg", "/female_25_32_3.jpg"],
+      qr: "https://example.com/female-young-adult",
+    },
+    "(38-43)": {
+      images: ["/female_38_43_1.jpg"],
+      qr: "https://example.com/female-mid-adult",
+    },
+  },
+};
+
+const defaultAds = {
+  images: ["/general1.jpg", "/general2.jpg", "/general3.jpg"],
+  qr: "#",
+  text: "Welcome! Scan to explore.",
+};
+
 const AdScreen = () => {
   const [adData, setAdData] = useState({
-    src: ["/general1.jpg", "/general2.jpg", "/general3.jpg"],  // Carousel default ads
-    qrLink: "#",
-    productText: "Welcome! Scan to explore."
+    src: defaultAds.images,
+    qrLink: defaultAds.qr,
+    productText: defaultAds.text,
   });
 
+  // Start the camera once when UI mounts
+useEffect(() => {
+  const startCam = async () => {
+    try {
+      const res = await axios.get("http://127.0.0.1:8000/start_camera");
+      console.log(res.data);
+    } catch (err) {
+      console.error("Camera start failed:", err);
+    }
+  };
+
+  startCam();
+}, []); // empty deps: ensures only 1 call
+
+
+  // Poll person details every 10s
   useEffect(() => {
-    axios
-      .get("http://127.0.0.1:8000/detect_person")
-      .then((response) => {
-        const data = response.data;
-        if (data.matched_ads && data.matched_ads.length > 0) {
-          const images = data.matched_ads.map(
-            (ad) => `http://127.0.0.1:8000/${ad.ad_image}`
-          );
+    const fetchPersonDetails = () => {
+      axios
+        .get("http://127.0.0.1:8000/get_person_details")
+        .then((res) => {
+          const { gender, age_group } = res.data;
+
+          if (
+            adLibrary[gender] &&
+            adLibrary[gender][age_group]
+          ) {
+            const matched = adLibrary[gender][age_group];
+            setAdData({
+              src: matched.images,
+              qrLink: matched.qr,
+              productText: "Scan to shop!",
+            });
+          } else {
+            setAdData({
+              src: defaultAds.images,
+              qrLink: defaultAds.qr,
+              productText: defaultAds.text,
+            });
+          }
+        })
+        .catch((err) => {
+          console.error("Error fetching person details:", err);
           setAdData({
-            src: images,
-            qrLink: data.matched_ads[0].qr_code,
-            productText: "Scan to shop!"
+            src: defaultAds.images,
+            qrLink: defaultAds.qr,
+            productText: defaultAds.text,
           });
-        }
-      })
-      .catch((error) => {
-        console.error("Error fetching ad:", error);
-      });
+        });
+    };
+
+    fetchPersonDetails(); // first call
+    const interval = setInterval(fetchPersonDetails, 5000); // every 10s
+
+    return () => clearInterval(interval);
   }, []);
 
   return (
