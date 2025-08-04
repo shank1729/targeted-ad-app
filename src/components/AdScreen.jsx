@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import axios from "axios";
 import AdDisplay from "./AdDisplay";
 import QRSection from "./QRSection";
@@ -23,7 +23,7 @@ const adLibrary = {
       qr: "https://example.com/male-teen",
     },
     "(25-32)": {
-      images: ["/male_25_32_1.jpg", "/male_25_32_2.jpg"],
+      images: ["/male_25_32_1.mp4","/male_25_32_1.jpg", "/male_25_32_2.jpg"],
       qr: "https://example.com/male-young-adult",
     },
     "(38-43)": {
@@ -49,11 +49,11 @@ const adLibrary = {
       qr: "https://example.com/female-teen",
     },
     "(25-32)": {
-      images: ["/female_25_32_1.jpg", "/female_25_32_2.jpg", "/female_25_32_3.jpg"],
+      images: ["/female_25_32_1.mp4","/female_25_32_1.jpg", "/female_25_32_2.jpg", "/female_25_32_3.jpg"],
       qr: "https://example.com/female-young-adult",
     },
     "(38-43)": {
-      images: ["/female_38_43_1.jpg"],
+      images: ["/female_38_43_1.mp4","/female_38_43_1.jpg"],
       qr: "https://example.com/female-mid-adult",
     },
   },
@@ -67,61 +67,109 @@ const defaultAds = {
 
 const AdScreen = () => {
   const [adData, setAdData] = useState({
-    src: defaultAds.images,
-    qrLink: defaultAds.qr,
-    productText: defaultAds.text,
-  });
+  src: defaultAds.images,
+  qrLink: defaultAds.qr,
+  productText: defaultAds.text,
+  gender: "",
+  ageGroup: "",
+});
+const previousPerson = useRef({ gender: null, age_group: null });
+
 
   // Start the camera once when UI mounts
-useEffect(() => {
-  const startCam = async () => {
-    try {
-      const res = await axios.get("http://127.0.0.1:8000/start_camera");
-      console.log(res.data);
-    } catch (err) {
-      console.error("Camera start failed:", err);
-    }
-  };
+// useEffect(() => {
+//   const startCam = async () => {
+//     try {
+//       const res = await axios.get("http://127.0.0.1:8000/start_camera");
+//       console.log(res.data);
+//     } catch (err) {
+//       console.error("Camera start failed:", err);
+//     }
+//   };
 
-  startCam();
-}, []); // empty deps: ensures only 1 call
+//   startCam();
+// }, []); // empty deps: ensures only 1 call
 
 
-  // Poll person details every 10s
+
   useEffect(() => {
     const fetchPersonDetails = () => {
-      axios
-        .get("http://127.0.0.1:8000/get_person_details")
-        .then((res) => {
-          const { gender, age_group } = res.data;
+  axios
+    .get("http://127.0.0.1:8000/get_person_details")
+    .then((res) => {
+      const { gender, age_group } = res.data;
 
-          if (
-            adLibrary[gender] &&
-            adLibrary[gender][age_group]
-          ) {
-            const matched = adLibrary[gender][age_group];
-            setAdData({
-              src: matched.images,
-              qrLink: matched.qr,
-              productText: "Scan to shop!",
-            });
-          } else {
-            setAdData({
-              src: defaultAds.images,
-              qrLink: defaultAds.qr,
-              productText: defaultAds.text,
-            });
-          }
-        })
-        .catch((err) => {
-          console.error("Error fetching person details:", err);
+      // Only update if gender or age group has changed
+      if (
+        gender !== previousPerson.current.gender ||
+        age_group !== previousPerson.current.age_group
+      ) {
+        previousPerson.current = { gender, age_group }; // update tracker
+
+        if (adLibrary[gender] && adLibrary[gender][age_group]) {
+          const matched = adLibrary[gender][age_group];
+          setAdData({
+            src: matched.images,
+            qrLink: matched.qr,
+            productText: `Scan to shop! (${gender}, ${age_group})`,
+          });
+        } else {
           setAdData({
             src: defaultAds.images,
             qrLink: defaultAds.qr,
             productText: defaultAds.text,
           });
-        });
-    };
+        }
+      }
+      // Else: do nothing (keeps carousel as-is)
+    })
+    .catch((err) => {
+      console.error("Error fetching person details:", err);
+      setAdData({
+        src: defaultAds.images,
+        qrLink: defaultAds.qr,
+        productText: defaultAds.text,
+      });
+    });
+};
+
+    // const fetchPersonDetails = () => {
+    //   axios
+    //     .get("http://127.0.0.1:8000/get_person_details")
+    //     .then((res) => {
+    //       const { gender, age_group } = res.data;
+
+    //       if (
+    //         adLibrary[gender] &&
+    //         adLibrary[gender][age_group]
+    //       ) {
+    //         const matched = adLibrary[gender][age_group];
+    //         setAdData({
+    //           src: matched.images,
+    //           qrLink: matched.qr,
+    //           productText: "Scan to shop!",
+    //           gender: gender,
+    //           ageGroup: age_group,
+    //         });
+    //       } else {
+    //         setAdData({
+    //           src: defaultAds.images,
+    //           qrLink: defaultAds.qr,
+    //           productText: defaultAds.text,
+    //           gender: "",
+    //           ageGroup: "",
+    //         });
+    //       }
+    //     })
+    //     .catch((err) => {
+    //       console.error("Error fetching person details:", err);
+    //       setAdData({
+    //         src: defaultAds.images,
+    //         qrLink: defaultAds.qr,
+    //         productText: defaultAds.text,
+    //       });
+    //     });
+    // };
 
     fetchPersonDetails(); // first call
     const interval = setInterval(fetchPersonDetails, 5000); // every 10s
@@ -130,12 +178,16 @@ useEffect(() => {
   }, []);
 
   return (
+  
     <div className="app-container">
       <div className="ad-container">
-        <AdDisplay src={adData.src} />
-      </div>
-      <QRSection qrLink={adData.qrLink} productText={adData.productText} />
+      <AdDisplay src={adData.src} />
     </div>
+    <QRSection qrLink={adData.qrLink} productText={adData.productText} gender={adData.gender} ageGroup={adData.ageGroup} />
+
+  
+</div>
+
   );
 };
 
